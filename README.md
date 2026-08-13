@@ -29,6 +29,12 @@ Expected output (pure simulation — hard-coded data, reads no real files, conta
 
 That is the whole contract: **tier → sources → self-check → trust level, nothing silently skipped**. The real spec is in `docs/G0-spec.md`; the production implementation ships with commercial products (see `LICENSE`).
 
+## Form statement / 形态声明
+
+- G0 is a **protocol spec + reference implementation**, not a plug-in. Expect a specification to implement against (15-min manual drill in `docs/G0-spec.md` §9), not an install-and-run tool.
+- G0 是**协议规范 + 参考实现**，不是即插即用插件。15 分钟手工演练见 `docs/G0-spec.md` §9；在线演示页见仓库首页链接。
+- License v1.1: BSL 1.1 (internal & non-commercial free; converts to MIT 2030-08-13). Earlier MIT statements in v1.0 docs are superseded.
+
 ---
 
 ## What is G0 / 这是什么

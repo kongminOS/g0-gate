@@ -1,6 +1,6 @@
 # G0 Gate — Session-Opening Context Assembly Protocol
 
-> **Status**: Design v1.0 (production-tested)
+> **Status**: Design v1.1 (production-tested) · **License**: BSL 1.1 (see LICENSE; converts to MIT on 2030-08-13)
 > **Position**: G0 runs *before* G1–G4 — it owns "opening context quality", not task discipline.
 > **Core promise**: AI agents open every session with the *right amount of context, verified loaded* — no human pasting, no hallucinated readiness.
 
@@ -97,4 +97,4 @@ If a customer must manually remind the agent "you skipped the gate", the gate is
 
 ## License
 
-MIT — see [LICENSE](../LICENSE).
+BSL 1.1 — see [LICENSE](../LICENSE). Converts to MIT on 2030-08-13. (v1.0 erroneously stated MIT; superseded as of v1.1.)
