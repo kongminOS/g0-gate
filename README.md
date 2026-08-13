@@ -6,6 +6,31 @@
 
 ---
 
+## Try it in 30 seconds / 30 秒试用
+
+```bash
+git clone https://github.com/kongminOS/g0-gate.git
+cd g0-gate
+python examples/run_g0_demo.py
+```
+
+Expected output (pure simulation — hard-coded data, reads no real files, contains no runtime logic):
+
+```
+[G0] task registered: 'regular development task' -> tier: standard
+[G0] loading 4 source(s)...
+  passport         ok           non-empty, updated 2 days ago
+  daily log        ok           today's entry found
+  recent records   ok           10 records, newest < 24h
+  memory bridge    unreachable  connection refused -> marked untrusted
+[G0] context_trust: partial (3/4 trusted)
+[G0] done: tier assembled. No source was silently skipped.
+```
+
+That is the whole contract: **tier → sources → self-check → trust level, nothing silently skipped**. The real spec is in `docs/G0-spec.md`; the production implementation ships with commercial products (see `LICENSE`).
+
+---
+
 ## What is G0 / 这是什么
 
 Most agent teams have task discipline (G1 grill-me → G2 spec → G3 tickets → G4 implementation). But every new session still starts blind: someone has to find the protocol doc, paste it, hope it's the right version.
