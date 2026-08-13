@@ -1,75 +1,105 @@
-# G0 Gate · 开工闸门
+# G0 Gate — AI Employee Governance: Session-Opening Context Assembly
 
-> The missing gate before G1: automatic context assembly for AI agents, with a self-check loop. No more copy-pasting onboarding protocols by hand.
->
-> G1 之前的那道闸门：为 AI Agent 自动装配正确档位的开工上下文，并自检"真加载到了"，不靠人粘贴。
+> **AI 员工治理 · 开工闸门**：让 AI Agent 每次开局都装上"正确档位、验证已加载"的上下文——不靠人粘贴，不装睁眼瞎。
 
----
+**G0 Gate** is a session-opening protocol for AI agents. It sits **before** G1–G4 (task-discipline gates) and owns one thing only: **context assembly quality at session start**. The system carries the rigor, so humans don't have to paste protocol text, guess the right tier, or chase expired documents.
 
-## Try it in 30 seconds / 30 秒试用
+```
+G0 (context assembly) → G1 (grill-me) → G2/G3/G4 (task discipline)
+```
+
+## Why this matters (the AI employee governance problem)
+
+- **Agents start blind**: without a gate, an agent opens a session with missing/wrong/expired context — and *acts confidently on it*.
+- **Human habit assets don't scale**: relying on someone to paste the right protocol is fine for one operator, impossible for customers running AI employees.
+- **The fix**: a gate the *system* runs — auto tier selection, auto load, self-verified.
+
+If you're building AI employees / AI agent teams / multi-agent systems and care about **AI employee governance** (discipline, accountability, reproducible behavior), G0 is the entry gate you're missing.
+
+## Core ideas
+
+| Idea | What it does |
+|---|---|
+| **Tiered manifests** | `lite` / `standard` / `heavy` — the system picks by task type + window budget, humans don't memorize |
+| **Window budget guard** | Constraint = context window, not tokens; low budget → auto-degrade + report what was skipped |
+| **Self-check loop** | Every source returns `ok/stale/missing/unreachable` → aggregate `context_trust: full/partial/none`; never pretend to have read something |
+| **Domain routing** | Load only the protocol sections + ≤3 skills for the task domain; no full scans |
+| **Versioned registry** | `g0_registry.json`: protocol edit → bump version → next session effective; the registry file *is* the sync channel |
+| **Enforcement (A/B/C)** | Harness hard-block (A) + machine auto-score (B) + embodied assistant voice (C) — skipping becomes *impossible*, not merely discouraged |
+
+## Quick start（30 秒跑通）
 
 ```bash
-git clone https://github.com/kongminOS/g0-gate.git
-cd g0-gate
+# 1. 看 G0 跑起来的样子（无依赖，纯 Python）
 python examples/run_g0_demo.py
+
+# 2. 跑 8 个验证场景（全 PASS = 协议实现正确）
+python examples/verify_gate.py --all
 ```
 
-Expected output (pure simulation — hard-coded data, reads no real files, contains no runtime logic):
-
 ```
-[G0] task registered: 'regular development task' -> tier: standard
-[G0] loading 4 source(s)...
-  passport         ok           non-empty, updated 2 days ago
-  daily log        ok           today's entry found
-  recent records   ok           10 records, newest < 24h
-  memory bridge    unreachable  connection refused -> marked untrusted
-[G0] context_trust: partial (3/4 trusted)
-[G0] done: tier assembled. No source was silently skipped.
+repo/
+├── spec/
+│   ├── G0-gate-spec-v2.md   # 🔴 现行规格 v2.0（BSL 1.1，含档位算法/manifest v2/自检公式）
+│   ├── wire-protocol.md     # /gate/init + /gate/run + /gate/status 端点契约
+│   └── verification.md      # 8 场景验证方法学
+├── examples/
+│   ├── g0_registry.example.json   # manifest v2 schema
+│   ├── run_g0_demo.py             # 30 秒模拟演示
+│   └── verify_gate.py             # 8 场景自动化断言
+├── docs/
+│   ├── migration-guide.md   # v1.0(MIT) → v2.0(BSL) 迁移说明（v1 已过时）
+│   └── SKILL.md             # Layer A agent-side prototype
+└── LICENSE                  # BSL 1.1（商用需授权）
 ```
 
-That is the whole contract: **tier → sources → self-check → trust level, nothing silently skipped**. The real spec is in `docs/G0-spec.md`; the production implementation ships with commercial products (see `LICENSE`).
+**1. Read the spec** → `spec/G0-gate-spec-v2.md`（v2.0 现行；v1 见 docs/migration-guide.md 已过时）
 
-## Form statement / 形态声明
+**2. Add a session-init hook** to your agent runtime that calls `G0.run()` on every new session:
 
-- G0 is a **protocol spec + reference implementation**, not a plug-in. Expect a specification to implement against (15-min manual drill in `docs/G0-spec.md` §9), not an install-and-run tool.
-- G0 是**协议规范 + 参考实现**，不是即插即用插件。15 分钟手工演练见 `docs/G0-spec.md` §9；在线演示页见仓库首页链接。
-- License v1.1: BSL 1.1 (internal & non-commercial free; converts to MIT 2030-08-13). Earlier MIT statements in v1.0 docs are superseded.
+```bash
+curl -X POST http://127.0.0.1:PORT/api/v1/session/start \
+  -H "Content-Type: application/json" \
+  -d '{"agent_id":"my-agent","project":"my-project","g0":true,"g0_tier":"heavy","window_budget":55}'
+```
 
----
+**3. Point the registry** at your passport/daily/records sources (see `examples/g0_registry.example.json`).
 
-## What is G0 / 这是什么
+**4. Wire enforcement**: harness blocks final output until gate = pass; machine scores gate-skipping; the assistant (if embodied) narrates the "facts I can check vs decisions I need from you" split.
 
-Most agent teams have task discipline (G1 grill-me → G2 spec → G3 tickets → G4 implementation). But every new session still starts blind: someone has to find the protocol doc, paste it, hope it's the right version.
+## Example registry
 
-G0 moves that step out of human hands. On session start, G0 pulls the correct context tier (lite / standard / heavy) from a registry, loads it, and verifies each source actually arrived (non-empty, fresh, reachable). A source that fails is marked untrusted instead of silently ignored.
+```json
+{
+  "version": "1.0.0",
+  "defaults": {
+    "internal_aliases": ["steward", "lead", "operator"],
+    "tier_policy": "auto",
+    "budget_threshold": 40,
+    "skill_cap": 3
+  },
+  "tiers": {
+    "lite":     { "sources": ["passport:50", "records:5"] },
+    "standard": { "sources": ["passport:full", "daily:1", "records:10", "framework:grep"] },
+    "heavy":    { "sources": ["passport:full", "daily:3", "records:20", "framework:full", "gates:all"] }
+  },
+  "projects": {
+    "company-ai": { "tier_policy": "auto", "domain": "engineering" }
+  }
+}
+```
 
-**G0 does not replace G1–G4. It makes them work** — gates only function when the agent actually carries the context those gates assume.
+## Acceptance criteria (from SPEC §7)
 
-多数团队有任务闸门（G1 盘问 → G2 规格 → G3 工单 → G4 验收），但每次新会话依然睁眼瞎启动：得人肉翻协议、粘贴、祈祷版本没过期。G0 把这一步从人手里拿走：会话开始即按档位（lite / standard / heavy）从注册表拉取上下文并逐源自检。G0 不替代 G1–G4，它让 G1–G4 真正跑起来。
+- [x] New session → no human pasting; agent auto-pulls correct-tier manifest (field-tested)
+- [x] Any source unreachable → marked `untrusted`, does not block
+- [x] Window budget low → auto-degrade + report skipped items
+- [x] Protocol edit → registry bump → next session effective
 
-## Repository contents / 仓库内容
+## Status
 
-- `docs/G0-spec.md` — full engineering specification: tier model, auto-discovery, self-check loop, domain routing, enforcement layers.
-- `examples/g0_registry.example.json` — registry manifest schema: tiers, domains, project bindings, tier policy.
+Production-tested in a multi-agent studio (internal + customer agents). Version 1.0.
 
-The G1–G4 methodology and the gate-state enforcement tooling live in [kongminOS/agent-gates](https://github.com/kongminOS/agent-gates) under the MIT License.
+## License
 
-## License / 许可
-
-This repository is licensed under the **Business Source License 1.1** (see `LICENSE`).
-
-| You may | You may not (without a commercial license) |
-|---|---|
-| Read, study, fork, modify | Offer a competing paid product/service built on this work |
-| Use it personally and educationally | Embed it in a competing commercial offering |
-| Use it in production **internally** within your organization | Resell or sublicense it as a standalone/embedded commercial product |
-
-On **2030-08-13** (Change Date), this work converts to the **MIT License**.
-
-Commercial licensing: contact the repository owner.
-
-本仓库采用 BSL 1.1：个人、学习、组织内部生产使用免费；将其用于对外收费的竞争性产品/服务（含嵌入式）需获得商业授权。2030-08-13 起自动转为 MIT。
-
----
-
-© 2026 Wang Deyi (DeyiAI / Kongmin)
+MIT — see [LICENSE](LICENSE).
