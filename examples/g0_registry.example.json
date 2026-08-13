@@ -1,0 +1,44 @@
+{
+  "version": "1.0.0",
+  "defaults": {
+    "internal_aliases": ["steward", "lead", "operator"],
+    "tier_policy": "auto",
+    "budget_threshold": 40,
+    "skill_cap": 3
+  },
+  "tiers": {
+    "lite": {
+      "sources": [
+        { "type": "passport", "scope": "digest", "limit_lines": 50 },
+        { "type": "records", "scope": "recent", "limit": 5 }
+      ]
+    },
+    "standard": {
+      "sources": [
+        { "type": "passport", "scope": "full" },
+        { "type": "daily", "scope": "days", "limit": 1 },
+        { "type": "records", "scope": "recent", "limit": 10 },
+        { "type": "framework", "scope": "grep" }
+      ]
+    },
+    "heavy": {
+      "sources": [
+        { "type": "passport", "scope": "full" },
+        { "type": "daily", "scope": "days", "limit": 3 },
+        { "type": "records", "scope": "recent", "limit": 20 },
+        { "type": "framework", "scope": "full" },
+        { "type": "gates", "scope": "all" }
+      ]
+    }
+  },
+  "domains": {
+    "engineering": { "extra_sources": [], "skills": ["code-review", "debugging"] },
+    "content": { "extra_sources": [], "skills": ["writing", "research"] },
+    "operation": { "extra_sources": [], "skills": ["monitoring"] },
+    "strategy": { "extra_sources": [], "skills": ["planning", "market-research"] }
+  },
+  "projects": {
+    "company-ai": { "tier_policy": "auto", "domain": "engineering" },
+    "content-hub": { "tier_policy": "standard", "domain": "content" }
+  }
+}
