@@ -29,6 +29,10 @@ If you're building AI employees / AI agent teams / multi-agent systems and care 
 
 ## Quick start（30 秒跑通）
 
+**先看它跑起来的样子（30 秒数字人演示）：**
+
+<video src="assets/g0-demo.mp4" controls width="360" style="max-width:100%"></video>
+
 ```bash
 # 1. 看 G0 跑起来的样子（无依赖，纯 Python）
 python examples/run_g0_demo.py
