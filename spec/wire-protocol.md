@@ -2,7 +2,12 @@
 
 > G0 运行时与宿主（harness / MCP 桥接 / 记忆服务）之间的网络契约。
 > 本协议是 **BSL 1.1** 资产的一部分；实现不随公开仓分发，但契约对集成方开放（只读实现指南）。
-> 基础路径：`https://<host>/gate`（本地运行时为 `http://127.0.0.1:<port>/gate`）。
+> 基础路径：`https://<host>/api/v1`（本地运行时为 `http://127.0.0.1:<port>/api/v1`）。
+
+---
+
+## 修订记录
+- **v1.0.1 (2026-08-17)**：对齐真实端点。原 `/gate/{init,run,status}` 为早期设计占位；当前可用契约为 `POST /g0/run`（装配）、`GET /g0/status`（查询）。G0 装配也可经宿主 `session/start` 钩子触发（body 带 `g0:true`），一次注册 + 装配。
 
 ---
 
@@ -15,44 +20,19 @@
 - **重试语义**：`5xx` / 网络错误可安全重试（幂等）；`4xx` 不重试。
 - **错误码**：见 §5。
 
-## 1. POST /gate/init
+## 1. POST /g0/run
 
-初始化项目绑定与档位策略（首次使用 / 项目变更时调用一次）。
-
-**请求**
-```json
-{
-  "project": "kongmin/backend",
-  "binding": { "path": ["backend", "worker"], "priority": 10 },
-  "tier_policy": "auto",
-  "domain": "engineering",
-  "domain_weight": 1.0
-}
-```
-
-**响应 200**
-```json
-{
-  "ok": true,
-  "manifest_id": "m_8f3k",
-  "manifest_version": "2.0",
-  "bound_sources": 6
-}
-```
-
-**错误**：`409 conflict`（已初始化，需显式 `overwrite: true`）；`422`（schema 校验失败，附 `errors[]`）。
-
-## 2. POST /gate/run
-
-执行开工装配（每次新会话调用）。
+执行开工装配（每次新会话调用）。项目初始化经资源注册表（`g0_registry.json`）配置，无需独立 init 端点。
 
 **请求**
 ```json
 {
   "session_id": "sess_20260813_001",
   "agent_id": "hermes",
-  "task_preview": "修复 auth 模块的 token 过期 bug",
-  "window_remaining": 0.42,
+  "project": "kongmin/backend",
+  "tier": "standard",
+  "domain": "engineering",
+  "window_budget": 60,
   "accept_version": 2
 }
 ```
@@ -62,16 +42,14 @@
 {
   "ok": true,
   "tier": "standard",
-  "score": 0.47,
-  "gate_confidence": 82,
+  "domain": "engineering",
   "loaded": [
     { "source": "passport", "status": "ok", "bytes": 2140, "freshness": 1.0 },
     { "source": "daily", "status": "ok", "bytes": 8900, "freshness": 0.9 },
     { "source": "pb", "status": "warn", "bytes": 0, "freshness": 0.0, "reason": "endpoint unreachable" }
   ],
   "skipped": [],
-  "gate_state": "pass",
-  "watermark": null
+  "context_trust": "partial"
 }
 ```
 
@@ -80,35 +58,33 @@
 {
   "ok": true,
   "tier": "lite",
-  "score": 0.18,
-  "gate_confidence": 22,
   "loaded": [{ "source": "passport", "status": "untrusted", "reason": "stale > 5x recency" }],
   "skipped": ["daily", "pb"],
-  "gate_state": "fail",
-  "watermark": "上下文可能为空/不可信"
+  "context_trust": "none"
 }
 ```
 
 **错误**：`401`（未鉴权）；`426`（版本不匹配）；`503`（注册表不可达，可重试）。
 
-## 3. GET /gate/status
+## 2. GET /g0/status
 
-查询当前会话的 gate 状态（Enforcement B 层扣分与 KPI 看板轮询用）。
+查询当前 G0 注册表与档位配置（Enforcement B 层扣分与 KPI 看板轮询用）。
 
 **响应 200**
 ```json
 {
-  "session_id": "sess_20260813_001",
-  "gate_state": "pass",
-  "gate_confidence": 82,
-  "violations": 0,
-  "deduction": 0,
-  "tier": "standard",
-  "manifest_version": "2.0"
+  "ok": true,
+  "version": "1.0.0",
+  "updated": "2026-08-11",
+  "tiers": ["lite", "standard", "heavy"],
+  "domains": ["engineering", "content", "operation", "strategy"],
+  "defaults": {}
 }
 ```
 
-**说明**：`violations` 为本次会话跳门次数；`deduction` 为累计扣分（公式见 spec-v2 §7.2）。
+## 3. 会话级钩子（宿主集成）
+
+宿主可在会话启动时一次注册 + 装配：`POST session/start`（body 带 `g0:true` 或 `g0_tier`），响应含 `g0.manifest` 与 `context_trust`。集成方应按此钩子作为最小路径先实现。
 
 ## 4. 鉴权规范
 
@@ -122,7 +98,6 @@
 |---|---|---|---|
 | `unauthorized` | 401 | token 缺失/过期 | 否 |
 | `version_mismatch` | 426 | Accept-Version 不支持 | 否 |
-| `conflict` | 409 | 已初始化未覆盖 | 否 |
 | `validation_failed` | 422 | schema 校验失败 | 否 |
 | `registry_unreachable` | 503 | 协议注册表不可达 | 是 |
 | `window_exhausted` | 429 | 窗口余量 < 5%，拒绝装配 | 否 |
