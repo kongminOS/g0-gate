@@ -106,4 +106,4 @@ Production-tested in a multi-agent studio (internal + customer agents). Version 
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+BSL 1.1 — see [LICENSE](LICENSE).
